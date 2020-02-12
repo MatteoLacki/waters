@@ -34,17 +34,19 @@ iaDBsXML.parameters()
 iaDBsXML.query_masses()
 iaDBsXML.count_proteins_per_hit()
 
+iaDBsXML.info()
 
 
-h = next(root.iter('HIT'))
-Counter(len(h) for h in root.iter('HIT'))
+
 
 prots.columns
 tree = iaDBsXML.tree
-
+tree.
 
 data_path2 = Path("~/Projects/waters/data/T180222_10/T180222_10_IA_workflow.xml").expanduser()
 iaDBsXML2 = iaDBsXMLparser(data_path2)
 print(iaDBsXML.get_tag_counts())
+
+
 
 

@@ -11,20 +11,20 @@ setup(
     author_email='matteo.lacki@gmail.com',
     url='https://github.com/MatteoLacki/waters/',
     # download_url='https://github.com/MatteoLacki/MassTodonPy/tree/GutenTag',
-    keywords=[
-        'Mass Spectrometry',
-        'Waters'],
+    keywords=['Mass Spectrometry',
+              'Waters'],
     classifiers=[
         'Development Status :: 1 - Planning',
         'License :: OSI Approved :: BSD License',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Chemistry',
         'Programming Language :: Python :: 3.7'],
-    # install_requires=[],
+    install_requires=['pandas'],
     # include_package_data=True,
     # package_data={
     #     'data':
     #          ['data/contaminants.fasta']
     # },
-    # scripts = []
+    scripts = ["bin/iadbs2stats",
+               "bin/iadbs2csv"]
 )

@@ -5,7 +5,7 @@ def rows2csv(path,
              rows,
              writer_kwds={'delimiter':',',
                           'quotechar':'"',
-                          'quoting':'csv.QUOTE_MINIMAL'}):
+                          'quoting':csv.QUOTE_MINIMAL}):
     """Dump rows to csv.
     
     Arguments:

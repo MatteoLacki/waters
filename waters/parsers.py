@@ -68,3 +68,17 @@ class iaDBsXMLparser(XMLparser):
             Counter: Distribution of proteins number per hit.
         """
         return Counter(len(h) for h in self.root.iter('HIT'))
+
+    def info(self):
+        """Return core information about the seach outcomes."""
+        out = {}
+        tag_counts = self.get_tag_counts()
+        params = self.parameters()
+        out['raw_file'] = params['RawFile']
+        out['acquired_name'] = params['AcquiredName']
+        out['sample_description'] = params['SampleDescription']
+        out['queries_cnt'] = tag_counts['QUERY_MASS']
+        out['hits_cnt'] = tag_counts['HIT']
+        out['peptides_cnt'] = tag_counts['PEPTIDE']
+        out['proteins_cnt'] = len(self.prot_ids())
+        return out

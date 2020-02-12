@@ -26,5 +26,7 @@ setup(
     #          ['data/contaminants.fasta']
     # },
     scripts = ["bin/iadbs2stats",
-               "bin/iadbs2csv"]
+               "bin/iadbs2csv",
+               "bin/iadbs2stats.py",
+               "bin/iadbs2csv.py"]
 )

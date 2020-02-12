@@ -1,6 +1,25 @@
 import xml.etree.cElementTree as ET
 from collections import Counter
 import pandas as pd
+from pathlib import Path
+
+
+def paths2xmls(paths):
+    """Analyze paths.
+
+    Paths can be supplied as simple paths to xmls.
+    But, if supplied with folders, a recurcive search for pattern "**/*_IA_workflow.xml"
+    in the file system tree will be executed, starting from that folder.
+
+    Yields:
+        xml paths
+    """
+    for p in paths:
+        p = Path(p).expanduser()
+        if p.is_file() and p.suffix == '.xml':
+            yield p
+        if p.is_dir():
+            yield from p.glob("**/*_IA_workflow.xml")
 
 
 class XMLparser(object):

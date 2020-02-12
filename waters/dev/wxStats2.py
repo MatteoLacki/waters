@@ -12,8 +12,11 @@ from waters.write import rows2csv
 
 
 data_path = Path("~/Projects/waters/data/T181207_07/T181207_07_IA_workflow.xml").expanduser()
+
 assert data_path.exists()
 iaDBsXML = iaDBsXMLparser(data_path)
+
+
 
 
 # iaDBsXML.json_tag_counts('/home/matteo/Projects/waters/data/T181207_07_stats.json')
@@ -37,7 +40,10 @@ iaDBsXML.count_proteins_per_hit()
 iaDBsXML.info()
 
 
-
+scripts_loc = Path(r"C:\Users\stefan\AppData\Local\Programs\Python\Python38\Scripts")
+sendto_loc = Path(r"C:\Users\stefan\AppData\Roaming\Microsoft\Windows\SendTo")
+os.link(scripts_loc/"iadbs2csv.py", sendto_loc/"_iadbs2csv.py")
+os.link(scripts_loc/"iadbs2stats.py", sendto_loc/"_iadbs2stats.py")
 
 prots.columns
 tree = iaDBsXML.tree
@@ -48,5 +54,17 @@ iaDBsXML2 = iaDBsXMLparser(data_path2)
 print(iaDBsXML.get_tag_counts())
 
 
+def find_iaDBs_outputs(root):
+	return list(root.glob("**/*_IA_workflow.xml"))
 
+find_iaDBs_outputs(Path(r"Y:\RES\2018-071"))
 
+def xmls(paths):
+    for p in paths:
+        p = Path(p)
+        if p.is_file() and p.suffix == '.xml':
+            yield p
+        if p.is_dir():
+            yield from p.glob("**/*_IA_workflow.xml")
+
+list(xmls([r"Y:\RES\2018-071",]))

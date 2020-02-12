@@ -1,25 +1,22 @@
 #! /usr/bin/python
 import argparse
-import json
 from pprint import pprint
-from pathlib import Path
 
-from waters.parsers import iaDBsXMLparser
-from waters.write import rows2csv
+from waters.parsers import paths2xmls, iaDBsXMLparser
 
 
 p = argparse.ArgumentParser(description="Get information on iaDBs.")
 p.add_argument("iadbsxml",
                nargs="+",
-               help="Paths to outputs of the iaDBs.")
+               help="Paths to outputs of the iaDBs. If ending with '.xml', will use directly. If supplied folders, these will be searched recursively for files ending with '_IA_workflow.xml'.")
 
 args = p.parse_args()
+xmls = list(paths2xmls(args.paths))
 
-print('Supplied xmls:')
-pprint(args.iadbsxml)
+print('Supplied paths:')
+pprint(xmls)
 
-for xml in args.iadbsxml:
-    xml = Path(xml).expanduser()
+for xml in xmls:
     XML = iaDBsXMLparser(xml)
     info = XML.info()
     pprint(info)

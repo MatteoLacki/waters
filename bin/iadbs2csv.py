@@ -28,4 +28,4 @@ for xml in xmls:
 print()
 print('Avoid tricks of Loki.')
 print('And have a nice day..')
-input()
+input('press ENTER')

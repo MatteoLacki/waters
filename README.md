@@ -19,7 +19,7 @@ It makes sense to add '.py' to PATHEXT system variable (to run scripts without s
 
 After first installation, run
 ```{batch}
-create_waters_shortcut.py
+create_waters_shortcuts.py
 ```
 as this will create executables for SendTo explorer tool.
 

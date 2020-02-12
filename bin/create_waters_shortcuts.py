@@ -20,4 +20,4 @@ if platform.system() == 'Windows':
 
 
 print('Created scripts.')
-input()
+input('press ENTER')

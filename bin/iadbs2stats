@@ -3,10 +3,10 @@ import argparse
 from pprint import pprint
 
 from waters.parsers import paths2xmls, iaDBsXMLparser
-
+from waters.write import rows2csv
 
 p = argparse.ArgumentParser(description="Get information on iaDBs.")
-p.add_argument("iadbsxml",
+p.add_argument("paths",
                nargs="+",
                help="Paths to outputs of the iaDBs. If ending with '.xml', will use directly. If supplied folders, these will be searched recursively for files ending with '_IA_workflow.xml'.")
 
@@ -26,3 +26,4 @@ for xml in xmls:
 print()
 print('Let Thor enlight your path with lightnings!')
 print('And have a nice day..')
+input('press ENTER')

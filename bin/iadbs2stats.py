@@ -10,6 +10,7 @@ p.add_argument("paths",
 args = p.parse_args()
 
 try:
+    print('Welcome to stats.csv maker')
     from fs_ops.csv import rows2csv
     from fs_ops.paths import find_suffixed_files
 

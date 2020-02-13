@@ -10,7 +10,7 @@ p.add_argument("paths",
 args = p.parse_args()
 
 try:
-
+    print('Parsing iaDBs outputs to csvs.')
     from fs_ops.paths import find_suffixed_files
     from waters.parsers import iaDBsXMLparser
 

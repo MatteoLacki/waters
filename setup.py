@@ -19,7 +19,7 @@ settings = dict(name='waters',
                     'Intended Audience :: Science/Research',
                     'Topic :: Scientific/Engineering :: Chemistry',
                     'Programming Language :: Python :: 3.7'],
-                install_requires=['pandas'])
+                install_requires=['pandas', 'fs_ops'])
 
 if platform.system() == 'Windows':
     settings['scripts'] = ["bin/iadbs2stats.py", "bin/iadbs2csv.py", "bin/create_waters_shortcuts.py"]

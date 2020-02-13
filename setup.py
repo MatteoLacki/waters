@@ -4,7 +4,7 @@ import platform
 
 settings = dict(name='waters',
                 packages=find_packages(),
-                version='0.0.2',
+                version='0.0.3',
                 description='Parsing MS data from Waters.',
                 long_description='Parsing MS data from Waters.',
                 author='Mateusz Krzysztof Łącki',

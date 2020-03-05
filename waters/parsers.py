@@ -82,3 +82,6 @@ class iaDBsXMLparser(XMLparser):
         out['peptides_cnt'] = tag_counts['PEPTIDE']
         out['proteins_cnt'] = len(self.prot_ids())
         return out
+
+    def get_search_stats(iadbs_out):
+        return iaDBsXMLparser(iadbs_out).info()    

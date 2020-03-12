@@ -1,6 +1,7 @@
-import xml.etree.cElementTree as ET
 from collections import Counter
+import numpy as np
 import pandas as pd
+import xml.etree.cElementTree as ET
 
 
 class XMLparser(object):
@@ -16,6 +17,38 @@ class XMLparser(object):
             Counter: count of each first-level tag.
         """
         return Counter(c.tag for c in self.root)
+
+    def get_all_tag_counts(self):
+        """Count all tags.
+
+        Returns:
+            Counter: count of each first-level tag.
+        """
+        return Counter(n.tag for n in self.tree.iter())
+
+
+
+class Apex3Dparser(XMLparser):
+    def __analytes_df(self, which, minimize=True):
+        assert which in ('LE','HE')
+        A = next(self.root.iter(which)).text
+        if A[0] == '\n':
+            A = A[1:]
+        o = np.fromstring(A, sep='\n')
+        o = o.reshape((int(len(o)/19),19))
+        columns = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
+        o = pd.DataFrame(o, columns=columns)
+        if minimize:
+            assert np.all(o.Area == o.Intensity), "Does not make sense to drop Area"
+            assert len(o.Function.unique()) == 1, "Non unique values of the Function column."
+            o.drop(['Function', 'Area'], 1, inplace=True)    
+        return o
+
+    def LE(self, minimize=True):
+        return self.__analytes_df('LE', minimize)
+
+    def HE(self):
+        return self.__analytes_df('HE', minimize)
 
 
 

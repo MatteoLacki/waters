@@ -32,6 +32,8 @@ pep3d = path/'T181207_07_Pep3D_Spectrum.xml'
 A = Apex3Dparser(apex)
 le = A.LE()
 plt.plot(le.RT, le.Intensity)
+plt.hist(le.Fwhm, 1000)
+
 
 he = A.HE()
 le.to_hdf(apex.with_suffix('.hdf5'), 'LE', format='fixed')

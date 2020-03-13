@@ -47,8 +47,9 @@ class Apex3Dparser(XMLparser):
     def LE(self, minimize=True):
         return self.__analytes_df('LE', minimize)
 
-    def HE(self):
+    def HE(self, minimize=True):
         return self.__analytes_df('HE', minimize)
+
 
 
 

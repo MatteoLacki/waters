@@ -6,6 +6,8 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+plt.style.use('dark_background')
+
 
 path = Path('/home/matteo/Projects/waters/data/T181207_07')
 apex = path/'T181207_07_Apex3D.xml'
@@ -29,23 +31,16 @@ pep3d = path/'T181207_07_Pep3D_Spectrum.xml'
 
 A = Apex3Dparser(apex)
 le = A.LE()
-
 plt.plot(le.RT, le.Intensity)
-plt.scatter(le.Mobility, le.Intensity, s=.1)
-
-le.RT.plot()
-
-
-
-le.columns
-
-
-
-le.Function.unique()
 
 he = A.HE()
 le.to_hdf(apex.with_suffix('.hdf5'), 'LE', format='fixed')
 he.to_hdf(apex.with_suffix('.hdf5'), 'HE', format='fixed')
+
+rt_bins = np.linspace(he.RT[0], he.RT[len(he.RT)-1], 10000)
+Ibin, rt_bins = np.histogram(he.RT, rt_bins, weights=he.Intensity)
+rt_mids = (rt_bins[:-1] + rt_bins[1:])/2
+plt.plot(rt_mids, Ibin)
 
 
 he.to_hdf(apex.with_suffix('.hdf5'), 'HE', complevel=9)
@@ -59,3 +54,7 @@ x.Intensity.hist(bins=1000)
 I = x.Intensity
 plt.hist(I[I<8000], bins=100)
 plt.hist(np.log(I), bins=100)
+
+
+
+

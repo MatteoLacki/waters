@@ -18,9 +18,18 @@ import statsmodels.formula.api as smf
 
 from fs_ops.csv import rows2csv
 
-from waters.parsers import XMLparser, iaDBsXMLparser, Pep3Dparser
+from waters.parsers import XMLparser, iaDBsXMLparser, Pep3Dparser, Apex3Dparser
 
-P3D = Pep3Dparser(r"/home/matteo/Projects/WatersData/O190303_78/O190303_78_Pep3D_Spectrum.xml")
+data_f = Path('~/Projects/WatersData/O190303_78').expanduser()
+apex3d = next(data_f.glob('*_Apex3D.xml'))
+pep3d = next(data_f.glob('*_Pep3D_Spectrum.xml'))
+iadbs = next(data_f.glob('*_IA_workflow.xml'))
+I = iaDBsXMLparser(iadbs)
+A = Apex3Dparser(apex3d)
+A.LE()
+A.HE()
+
+P3D = Pep3Dparser(pep3d)
 P3D.get_tag_counts()
 P3D.get_all_tag_counts()
 

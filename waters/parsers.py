@@ -74,6 +74,7 @@ class Pep3Dparser(XMLparser):
         return self.element2df(elem, columns)
 
     def HE(self):
+        """Get high energy ions, or the spectra of fragments."""
         elem = next(self.root.iter('HE_DATA'))
         columns = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='1']/*")]
         return self.element2df(elem, columns)
@@ -81,28 +82,17 @@ class Pep3Dparser(XMLparser):
 
 
 class Apex3Dparser(XMLparser):
-    def __init__(self, data_path):
-        super().__init__(data_path)
-        all_tags = self.get_all_tag_counts()
-        assert 'LE' in all_tags, "No low energy (MS1) data."
-        assert 'HE' in all_tags, "No high energy (MS2) data."
-
-    def __signals_df(self, which):
-        # assert which in ('LE','HE')
-        A = next(self.root.iter(which)).text
-        if A[0] == '\n':
-            A = A[1:]
-        o = np.fromstring(A, sep='\n')
-        columns = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
-        o = o.reshape((int(len(o)/len(columns)), len(columns)))
-        o = pd.DataFrame(o, columns=columns)
-        return o
-
     def LE(self):
-        return self.__signals_df('LE')
+        """Get low energy ions, or the unfragmented spectra."""
+        elem = next(self.root.iter('LE'))
+        columns = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
+        return self.element2df(elem, columns)
 
     def HE(self):
-        return self.__signals_df('HE')
+        """Get high energy ions, or the spectra of fragments."""
+        elem = next(self.root.iter('HE'))
+        columns = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
+        return self.element2df(elem, columns)
 
 
 
@@ -169,6 +159,8 @@ class iaDBsXMLparser(XMLparser):
         out['peptides_cnt'] = tag_counts['PEPTIDE']
         out['proteins_cnt'] = len(self.prot_ids())
         return out
+
+
 
 def get_search_stats(iadbs_out):
     return iaDBsXMLparser(iadbs_out).info()    

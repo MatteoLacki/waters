@@ -14,24 +14,22 @@ apexPaths = list(data_f.glob('*/*_Apex3D.xml'))
 apex3d = next(data_f.glob('*/*_Apex3D.xml'))
 pep3d = next(data_f.glob('*/*_Pep3D_Spectrum.xml'))
 
+# no mobility data.
 A = Apex3Dparser(apex3d)
 le = A.LE()
 he = A.HE()
 A.get_all_tag_counts()
 
+# B = Apex3Dparser(next(data_f.glob('O200114_03/*_Apex3D.xml')))
+# le = B.LE()
+# le.columns
 
-
-
-plt.plot(le.RT, le.Intensity)
+plt.hist(le.Mobility, weights=le.Intensity, bins=1000)
 plt.show()
-plt.hist(le.Fwhm, 1000)
 
-
-
-he = A.HE()
-le.to_hdf(apex.with_suffix('.hdf5'), 'LE', format='fixed')
-he.to_hdf(apex.with_suffix('.hdf5'), 'HE', format='fixed')
-
+X = le.query('RT > 30 & RT < 40 & Mass > 500 & Mass < 600')
+plt.hist(X.Mobility, weights=X.Intensity, bins=1000)
+plt.show()
 
 
 

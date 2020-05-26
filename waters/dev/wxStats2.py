@@ -6,12 +6,15 @@ from collections import Counter
 import pandas as pd
 import csv
 import json
+import numpy as np
+import xml.etree.cElementTree as ET
 
 from fs_ops.csv import rows2csv
 
 from waters.parsers import XMLparser, iaDBsXMLparser
 
-data_path = Path("~/Projects/waters/data/T181207_07/T181207_07_IA_workflow.xml").expanduser()
+# data_path = Path("~/Projects/waters/data/T181207_07/T181207_07_IA_workflow.xml").expanduser()
+data_path = Path("~/Projects/WatersData/O190303_78/O190303_78_IA_workflow.xml").expanduser()
 assert data_path.exists()
 iaDBsXML = iaDBsXMLparser(data_path)
 
@@ -57,4 +60,6 @@ def xmls(paths):
         if p.is_dir():
             yield from p.glob("**/*_IA_workflow.xml")
 
-list(xmls([r"Y:\RES\2018-071",]));suffix
+list(xmls([r"Y:\RES\2018-071",]))
+
+

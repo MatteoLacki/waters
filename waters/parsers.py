@@ -26,6 +26,58 @@ class XMLparser(object):
         """
         return Counter(n.tag for n in self.tree.iter())
 
+    def iter_filter_elements(self, tag, **conditions):
+        """Iterate elements with attirbute set to specific values.
+
+        But only recently have I learned, that there is limited reason to use it, as etree now supports XPath from v. 1.03 up, see http://effbot.org/zone/element-xpath.htm
+
+        Args:
+            tag (str): which tag to look at?
+            **conditions: attribute name and value (str or set),
+        Yields:
+            xml.etree.cElementTree.Element: consecutive elements meeting the criteria.
+        """
+        conditions = {k: set([v]) if isinstance(v,str) else v for k,v in conditions.items()}
+        for el in self.root.findall(tag):
+            OK = True
+            for k,v in conditions.items():
+                if not (k in el.attrib and el.attrib[k] in v):
+                    OK = False
+                    break
+            if OK:
+                yield el
+    
+    def element2df(self, xml_element, columns):
+        """Represent the text data as a DataFrame.
+
+        Args:
+            xml_element (xml.etree.cElementTree.Element): One of the xml tree nodes.
+            columns (list): Names of columns for the reported data frame.
+
+        Returns:
+            pd.DataFrame: Data contained in the text field of the xml_element, nicely parsed into a data frame.
+        """
+        D = xml_element.text
+        if D[0] == '\n':
+            D = D[1:]
+        o = np.fromstring(D, sep='\n')
+        o = o.reshape((int(len(o)/len(columns)), len(columns)))
+        return pd.DataFrame(o, columns=columns)
+
+
+
+class Pep3Dparser(XMLparser):
+    def LE(self):
+        """Get low energy ions, or the unfragmented spectra."""
+        elem = next(self.root.iter('DATA'))
+        columns = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='0']/*")]
+        return self.element2df(elem, columns)
+
+    def HE(self):
+        elem = next(self.root.iter('HE_DATA'))
+        columns = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='1']/*")]
+        return self.element2df(elem, columns)
+
 
 
 class Apex3Dparser(XMLparser):
@@ -36,7 +88,7 @@ class Apex3Dparser(XMLparser):
         assert 'HE' in all_tags, "No high energy (MS2) data."
 
     def __signals_df(self, which):
-        assert which in ('LE','HE')
+        # assert which in ('LE','HE')
         A = next(self.root.iter(which)).text
         if A[0] == '\n':
             A = A[1:]
@@ -51,7 +103,6 @@ class Apex3Dparser(XMLparser):
 
     def HE(self):
         return self.__signals_df('HE')
-
 
 
 

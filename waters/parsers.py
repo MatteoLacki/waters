@@ -1,4 +1,5 @@
 from collections import Counter
+from io import StringIO
 import numpy as np
 import pandas as pd
 import xml.etree.cElementTree as ET
@@ -47,7 +48,7 @@ class XMLparser(object):
             if OK:
                 yield el
     
-    def element2df(self, xml_element, columns):
+    def element2df(self, xml_element, column_names, sep=' ', skipinitialspace=True, **kwds):
         """Represent the text data as a DataFrame.
 
         Args:
@@ -57,12 +58,38 @@ class XMLparser(object):
         Returns:
             pd.DataFrame: Data contained in the text field of the xml_element, nicely parsed into a data frame.
         """
-        D = xml_element.text
-        if D[0] == '\n':
-            D = D[1:]
-        o = np.fromstring(D, sep='\n')
-        o = o.reshape((int(len(o)/len(columns)), len(columns)))
-        return pd.DataFrame(o, columns=columns)
+        return pd.read_table(StringIO(xml_element.text), 
+                             names=column_names,
+                             sep=' ',
+                             skipinitialspace=True,
+                             **kwds)
+
+    def write(self, path):
+        """Write back the xml file."""
+        path = str(path)
+        self.tree.write(path)
+
+
+#TODO: it might make sense to change row.astype(str) to something that uses the proper numbers of digits.
+def df2text2(df):
+    return "\n      "+"\n      ".join(" ".join(row.astype(str)) for row in df.values)
+
+
+def df2text3(df):
+    x = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
+    return "\n      "+"\n      ".join(x)
+
+
+def df2text(df, col2format={}, copy=True):
+    if copy:
+        df = df.copy()
+    cols = df.columns
+    for col, formatter in col2format.items():
+        df.loc[:,col] = df.loc[:,col].apply(lambda x: formatter % x)
+    cols_simple2str = [c for c in cols if c not in col2format]
+    df.loc[:,cols_simple2str] = df[cols_simple2str].astype(np.str)
+    df = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
+    return "\n      "+"\n      ".join(df)
 
 
 
@@ -70,14 +97,18 @@ class Pep3Dparser(XMLparser):
     def LE(self):
         """Get low energy ions, or the unfragmented spectra."""
         elem = next(self.root.iter('DATA'))
-        columns = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='0']/*")]
-        return self.element2df(elem, columns)
+        column_names = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='0']/*")]
+        return self.element2df(elem, column_names)
 
     def HE(self):
         """Get high energy ions, or the spectra of fragments."""
         elem = next(self.root.iter('HE_DATA'))
-        columns = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='1']/*")]
-        return self.element2df(elem, columns)
+        column_names = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='1']/*")]
+        return self.element2df(elem, column_names)
+
+    def update_data(self, element, df, df_foo=df2text):
+        """Update the text data in the column."""
+        element.text = df_foo(df)
 
 
 
@@ -85,14 +116,14 @@ class Apex3Dparser(XMLparser):
     def LE(self):
         """Get low energy ions, or the unfragmented spectra."""
         elem = next(self.root.iter('LE'))
-        columns = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
-        return self.element2df(elem, columns)
+        column_names = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
+        return self.element2df(elem, column_names)
 
     def HE(self):
         """Get high energy ions, or the spectra of fragments."""
         elem = next(self.root.iter('HE'))
-        columns = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
-        return self.element2df(elem, columns)
+        column_names = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
+        return self.element2df(elem, column_names)
 
 
 

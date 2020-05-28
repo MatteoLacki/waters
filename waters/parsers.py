@@ -1,5 +1,6 @@
 from collections import Counter
 from io import StringIO
+from functools import lru_cache
 import numpy as np
 import pandas as pd
 import xml.etree.cElementTree as ET
@@ -11,6 +12,7 @@ class XMLparser(object):
         self.tree = ET.parse(data_path)
         self.root = self.tree.getroot()
 
+    @lru_cache(maxsize=1)
     def get_tag_counts(self):
         """Count the top level tags.
 
@@ -19,6 +21,7 @@ class XMLparser(object):
         """
         return Counter(c.tag for c in self.root)
 
+    @lru_cache(maxsize=1)
     def get_all_tag_counts(self):
         """Count all tags.
 
@@ -70,7 +73,21 @@ class XMLparser(object):
         self.tree.write(path)
 
 
-#TODO: it might make sense to change row.astype(str) to something that uses the proper numbers of digits.
+
+def df2text(df, col2format={}, copy=True):
+    """Translate df to data compatible with the used xml format."""
+    if copy:
+        df = df.copy()
+    cols = df.columns
+    for col, formatter in col2format.items():
+        df.loc[:,col] = df.loc[:,col].apply(lambda x: formatter.format(x))
+    cols_simple2str = [c for c in cols if c not in col2format]
+    df.loc[:,cols_simple2str] = df[cols_simple2str].astype(np.str)
+    df = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
+    return "\n      "+"\n      ".join(df)
+
+
+
 def df2text2(df):
     return "\n      "+"\n      ".join(" ".join(row.astype(str)) for row in df.values)
 
@@ -80,50 +97,102 @@ def df2text3(df):
     return "\n      "+"\n      ".join(x)
 
 
-def df2text(df, col2format={}, copy=True):
-    if copy:
-        df = df.copy()
-    cols = df.columns
-    for col, formatter in col2format.items():
-        df.loc[:,col] = df.loc[:,col].apply(lambda x: formatter % x)
-    cols_simple2str = [c for c in cols if c not in col2format]
-    df.loc[:,cols_simple2str] = df[cols_simple2str].astype(np.str)
-    df = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
-    return "\n      "+"\n      ".join(df)
-
-
 
 class Pep3Dparser(XMLparser):
+    def LE_columns(self):
+        """Get low energy column names."""
+        return [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='0']/*")]
+
+    def LE_element(self):
+        """Get low energy xml-tree element."""
+        return next(self.root.iter('DATA'))
+
+    @property
     def LE(self):
         """Get low energy ions, or the unfragmented spectra."""
-        elem = next(self.root.iter('DATA'))
-        column_names = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='0']/*")]
-        return self.element2df(elem, column_names)
+        return self.element2df(self.LE_element(), self.LE_columns())
 
+    @LE.setter
+    def LE(self, df):
+        self.LE_element().text = df2text(df, {'Mass':'{:.4f}',
+                                              'MassSD':'{:.4f}',
+                                              'IntensitySD':'{:.2f}',
+                                              'AverageCharge':'{:.2f}',
+                                              'RT':'{:.4f}',
+                                              'RTSD':'{:.4e}',
+                                              'FWHM':'{:.4e}',
+                                              'LiftOffRT':'{:.4e}',
+                                              'InfUpRT':'{:.4e}',
+                                              'InfDownRT':'{:.4e}',
+                                              'TouchDownRT':'{:.4e}'})
+
+    def HE_columns(self):
+        """Get high energy column names."""
+        return [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='1']/*")]
+
+    def HE_element(self):
+        """Get high energy xml-tree element."""
+        return next(self.root.iter('HE_DATA'))
+
+    @property
     def HE(self):
         """Get high energy ions, or the spectra of fragments."""
-        elem = next(self.root.iter('HE_DATA'))
-        column_names = [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='1']/*")]
-        return self.element2df(elem, column_names)
+        return self.element2df(self.HE_element(), self.HE_columns())
 
-    def update_data(self, element, df, df_foo=df2text):
-        """Update the text data in the column."""
-        element.text = df_foo(df)
+    @HE.setter
+    def HE(self, df):
+        self.HE_element().text = df2text(df, {'Mass':'{:.4f}',
+                                              'MassSD':'{:.4f}',
+                                              'IntensitySD':'{:.2f}',
+                                              'AverageCharge':'{:.2f}',
+                                              'RT':'{:.4f}',
+                                              'RTSD':'{:.4e}',
+                                              'FWHM':'{:.4e}',
+                                              'LiftOffRT':'{:.4e}',
+                                              'InfUpRT':'{:.4e}',
+                                              'InfDownRT':'{:.4e}',
+                                              'TouchDownRT':'{:.4e}'})
 
 
 
 class Apex3Dparser(XMLparser):
+    def columns(self):
+        """Get column names."""
+        return [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
+
+    def LE_columns(self):
+        """Get low energy column names."""
+        return self.columns()
+
+    def HE_columns(self):
+        """Get low energy column names."""
+        return self.columns()
+
+    def LE_element(self):
+        """Get low energy xml-tree element."""
+        return next(self.root.iter('DATA'))
+
+    def HE_element(self):
+        """Get low energy xml-tree element."""
+        return next(self.root.iter('HE'))
+
+    @property
     def LE(self):
         """Get low energy ions, or the unfragmented spectra."""
-        elem = next(self.root.iter('LE'))
-        column_names = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
-        return self.element2df(elem, column_names)
+        return self.element2df(self.LE_element(), self.LE_columns())
 
+    @property
     def HE(self):
         """Get high energy ions, or the spectra of fragments."""
-        elem = next(self.root.iter('HE'))
-        column_names = [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
-        return self.element2df(elem, column_names)
+        return self.element2df(self.HE_element(), self.HE_columns())
+
+    @HE.setter
+    def HE(self, df):
+        raise NotImplementedError
+
+    @LE.setter
+    def LE(self, df):
+        raise NotImplementedError
 
 
 

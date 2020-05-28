@@ -120,11 +120,11 @@ class Pep3Dparser(XMLparser):
                                               'AverageCharge':'{:.2f}',
                                               'RT':'{:.4f}',
                                               'RTSD':'{:.4e}',
-                                              'FWHM':'{:.4e}',
-                                              'LiftOffRT':'{:.4e}',
-                                              'InfUpRT':'{:.4e}',
-                                              'InfDownRT':'{:.4e}',
-                                              'TouchDownRT':'{:.4e}'})
+                                              'FWHM':'{:.4f}',
+                                              'LiftOffRT':'{:.4f}',
+                                              'InfUpRT':'{:.4f}',
+                                              'InfDownRT':'{:.4f}',
+                                              'TouchDownRT':'{:.4f}'})
 
     def HE_columns(self):
         """Get high energy column names."""
@@ -147,11 +147,11 @@ class Pep3Dparser(XMLparser):
                                               'AverageCharge':'{:.2f}',
                                               'RT':'{:.4f}',
                                               'RTSD':'{:.4e}',
-                                              'FWHM':'{:.4e}',
-                                              'LiftOffRT':'{:.4e}',
-                                              'InfUpRT':'{:.4e}',
-                                              'InfDownRT':'{:.4e}',
-                                              'TouchDownRT':'{:.4e}'})
+                                              'FWHM':'{:.4f}',
+                                              'LiftOffRT':'{:.4f}',
+                                              'InfUpRT':'{:.4f}',
+                                              'InfDownRT':'{:.4f}',
+                                              'TouchDownRT':'{:.4f}'})
 
 
 

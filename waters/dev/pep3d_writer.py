@@ -12,10 +12,11 @@ from statsmodels.formula.api import ols
 import statsmodels.api as sm
 from platform import system
 
-from waters.parsers import XMLparser, iaDBsXMLparser, Pep3Dparser, Apex3Dparser, df2text
+from waters.parsers import XMLparser, iaDBsXMLparser, Pep3Dparser, Apex3Dparser, df2text, col2format
 
 if system() == 'Linux':
     data_f = Path('~/Projects/WatersData/O190303_78').expanduser()
+    data_f = Path('/home/matteo/Projects/WatersData/O200114_03').expanduser()
 else:
     data_f = Path(r'C:\SYMPHONY_VODKAS\WatersData\OHeLa100\O190302_01')
     data_f = Path(r"C:\SYMPHONY_VODKAS\WatersData\O190303_78")
@@ -23,17 +24,41 @@ pep3d  = next(data_f.glob('*_Pep3D_Spectrum.xml'))
 
 P3D = Pep3Dparser(pep3d)
 P3D.get_all_tag_counts()
-le = P3D.LE.set_index('LE_ID')
-he = P3D.HE.set_index('HE_ID')
+
+le = P3D.LE
+he = P3D.HE
+
+le['Intensity'] = 10000
+P3D.LE = le
+
+df = le[:5].copy()
+
+col2format
+
+
+le.MobilitySD.hist()
+Counter(le.MobilitySD)
+le.Mobility.hist(bins=1000)
+plt.show()
+
+
+cols = df.columns
+col2format = {c:col2format[c] for c in set(cols) & set(col2format)}
+for col, formatter in col2format.items():
+    df.loc[:,col] = df.loc[:,col].apply(lambda x: formatter.format(x))
+cols_simple2str = [c for c in cols if c not in col2format]
+df.loc[:,cols_simple2str] = df[cols_simple2str].astype(np.str)
+df = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
+return "\n      "+"\n      ".join(df)
+
 
 plt.scatter(le.ADCResponse, le.Intensity)
 plt.show()
 plt.scatter(le.ADCResponse, le.MassSD)
 plt.show()
-
-# No LE == 1
-LE_1 = np.fromstring("770,777,779,781,782,783,784,785,786,788,791,795,801,802,803,806,810,815,820,821,832,833,838,840,842,845,849,850,851,855,858,859,860,863,866,867,869,870,872,873,876,878,880,881,885", sep=',', dtype=int)
-he.loc[LE_1]
+# # No LE == 1
+# LE_1 = np.fromstring("770,777,779,781,782,783,784,785,786,788,791,795,801,802,803,806,810,815,820,821,832,833,838,840,842,845,849,850,851,855,858,859,860,863,866,867,869,870,872,873,876,878,880,881,885", sep=',', dtype=int)
+# he.loc[LE_1]
 
 plt.scatter(he.ADCResponse, he.Intensity, s=.1)
 plt.show()
@@ -83,7 +108,7 @@ Intercepts = []
 for Z,M in models.items():
     ZZ.append(Z)
     Intercepts.append(M.params['Intercept'])
-ZZ = np.array(ZZ)    
+ZZ = np.array(ZZ)
 Intercepts = np.array(Intercepts)
 plt.plot(np.log(ZZ), Intercepts)
 plt.show()

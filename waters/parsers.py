@@ -6,11 +6,27 @@ import pandas as pd
 import xml.etree.cElementTree as ET
 
 
+col2format = { 'Mass':'{:.4f}',
+               'MassSD':'{:.4f}',
+               'IntensitySD':'{:.2f}',
+               'AverageCharge':'{:.2f}',
+               'RT':'{:.4f}',
+               'RTSD':'{:.4e}',
+               'FWHM':'{:.4f}',
+               'Mobility':'{:.3f}',
+               'MobilitySD':'{:.3f}',
+               'LiftOffRT':'{:.4f}',
+               'InfUpRT':'{:.4f}',
+               'InfDownRT':'{:.4f}',
+               'TouchDownRT':'{:.4f}' }
+
+
 class XMLparser(object):
     """General xml parsing capabilities."""
-    def __init__(self, data_path):
+    def __init__(self, data_path, col2format=col2format):
         self.tree = ET.parse(data_path)
         self.root = self.tree.getroot()
+        self.col2format = col2format
 
     @lru_cache(maxsize=1)
     def get_tag_counts(self):
@@ -74,11 +90,12 @@ class XMLparser(object):
 
 
 
-def df2text(df, col2format={}, copy=True):
+def df2text(df, col2format=col2format, copy=True):
     """Translate df to data compatible with the used xml format."""
     if copy:
         df = df.copy()
     cols = df.columns
+    col2format = {c:col2format[c] for c in set(cols) & set(col2format)}
     for col, formatter in col2format.items():
         df.loc[:,col] = df.loc[:,col].apply(lambda x: formatter.format(x))
     cols_simple2str = [c for c in cols if c not in col2format]
@@ -99,10 +116,12 @@ def df2text3(df):
 
 
 class Pep3Dparser(XMLparser):
+    @property
     def LE_columns(self):
         """Get low energy column names."""
         return [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='0']/*")]
 
+    @property
     def LE_element(self):
         """Get low energy xml-tree element."""
         return next(self.root.iter('DATA'))
@@ -110,26 +129,18 @@ class Pep3Dparser(XMLparser):
     @property
     def LE(self):
         """Get low energy ions, or the unfragmented spectra."""
-        return self.element2df(self.LE_element(), self.LE_columns())
+        return self.element2df(self.LE_element, self.LE_columns)
 
     @LE.setter
     def LE(self, df):
-        self.LE_element().text = df2text(df, {'Mass':'{:.4f}',
-                                              'MassSD':'{:.4f}',
-                                              'IntensitySD':'{:.2f}',
-                                              'AverageCharge':'{:.2f}',
-                                              'RT':'{:.4f}',
-                                              'RTSD':'{:.4e}',
-                                              'FWHM':'{:.4f}',
-                                              'LiftOffRT':'{:.4f}',
-                                              'InfUpRT':'{:.4f}',
-                                              'InfDownRT':'{:.4f}',
-                                              'TouchDownRT':'{:.4f}'})
+        self.LE_element.text = df2text(df, self.col2format)
 
+    @property
     def HE_columns(self):
         """Get high energy column names."""
         return [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='1']/*")]
 
+    @property
     def HE_element(self):
         """Get high energy xml-tree element."""
         return next(self.root.iter('HE_DATA'))
@@ -137,41 +148,36 @@ class Pep3Dparser(XMLparser):
     @property
     def HE(self):
         """Get high energy ions, or the spectra of fragments."""
-        return self.element2df(self.HE_element(), self.HE_columns())
+        return self.element2df(self.HE_element, self.HE_columns)
 
     @HE.setter
     def HE(self, df):
-        self.HE_element().text = df2text(df, {'Mass':'{:.4f}',
-                                              'MassSD':'{:.4f}',
-                                              'IntensitySD':'{:.2f}',
-                                              'AverageCharge':'{:.2f}',
-                                              'RT':'{:.4f}',
-                                              'RTSD':'{:.4e}',
-                                              'FWHM':'{:.4f}',
-                                              'LiftOffRT':'{:.4f}',
-                                              'InfUpRT':'{:.4f}',
-                                              'InfDownRT':'{:.4f}',
-                                              'TouchDownRT':'{:.4f}'})
+        self.HE_element.text = df2text(df, self.col2format)
 
 
 
 class Apex3Dparser(XMLparser):
+    @property
     def columns(self):
         """Get column names."""
         return [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
 
+    @property
     def LE_columns(self):
         """Get low energy column names."""
-        return self.columns()
+        return self.columns
 
+    @property
     def HE_columns(self):
         """Get low energy column names."""
-        return self.columns()
+        return self.columns
 
+    @property
     def LE_element(self):
         """Get low energy xml-tree element."""
         return next(self.root.iter('DATA'))
 
+    @property
     def HE_element(self):
         """Get low energy xml-tree element."""
         return next(self.root.iter('HE'))
@@ -179,12 +185,12 @@ class Apex3Dparser(XMLparser):
     @property
     def LE(self):
         """Get low energy ions, or the unfragmented spectra."""
-        return self.element2df(self.LE_element(), self.LE_columns())
+        return self.element2df(self.LE_element, self.LE_columns)
 
     @property
     def HE(self):
         """Get high energy ions, or the spectra of fragments."""
-        return self.element2df(self.HE_element(), self.HE_columns())
+        return self.element2df(self.HE_element, self.HE_columns)
 
     @HE.setter
     def HE(self, df):

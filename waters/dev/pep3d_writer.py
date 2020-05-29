@@ -30,27 +30,15 @@ he = P3D.HE
 
 le['Intensity'] = 10000
 P3D.LE = le
-
 df = le[:5].copy()
 
-col2format
+
 
 
 le.MobilitySD.hist()
 Counter(le.MobilitySD)
 le.Mobility.hist(bins=1000)
 plt.show()
-
-
-cols = df.columns
-col2format = {c:col2format[c] for c in set(cols) & set(col2format)}
-for col, formatter in col2format.items():
-    df.loc[:,col] = df.loc[:,col].apply(lambda x: formatter.format(x))
-cols_simple2str = [c for c in cols if c not in col2format]
-df.loc[:,cols_simple2str] = df[cols_simple2str].astype(np.str)
-df = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
-return "\n      "+"\n      ".join(df)
-
 
 plt.scatter(le.ADCResponse, le.Intensity)
 plt.show()

@@ -24,6 +24,7 @@ col2format = { 'Mass':'{:.4f}',
 class XMLparser(object):
     """General xml parsing capabilities."""
     def __init__(self, data_path, col2format=col2format):
+        self.data_path = data_path
         self.tree = ET.parse(data_path)
         self.root = self.tree.getroot()
         self.col2format = col2format
@@ -227,6 +228,14 @@ class iaDBsXMLparser(XMLparser):
             pd.DataFrame: Products information.
         """
         return pd.DataFrame(p.attrib for p in self.root.findall('PRODUCT'))
+
+    def peptides(self):
+        """Get all products information from the XML file.
+
+        Returns:
+            pd.DataFrame: Products information.
+        """
+        return pd.DataFrame(p.attrib for p in self.root.findall('PEPTIDE'))
 
     def parameters(self):
         """Get iaDBs parameters.

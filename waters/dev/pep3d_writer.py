@@ -15,7 +15,7 @@ from platform import system
 from waters.parsers import XMLparser, iaDBsXMLparser, Pep3Dparser, Apex3Dparser, df2text, col2format
 
 if system() == 'Linux':
-    data_f = Path('~/Projects/WatersData/O190303_78').expanduser()
+    # data_f = Path('~/Projects/WatersData/O190303_78').expanduser()
     data_f = Path('/home/matteo/Projects/WatersData/O200114_03').expanduser()
 else:
     data_f = Path(r'C:\SYMPHONY_VODKAS\WatersData\OHeLa100\O190302_01')
@@ -32,7 +32,7 @@ le['Intensity'] = 10000
 P3D.LE = le
 df = le[:5].copy()
 
-
+sum(he.MobilitySD > 0)
 
 
 le.MobilitySD.hist()
@@ -98,15 +98,50 @@ for Z,M in models.items():
     Intercepts.append(M.params['Intercept'])
 ZZ = np.array(ZZ)
 Intercepts = np.array(Intercepts)
-plt.plot(np.log(ZZ), Intercepts)
+plt.scatter(np.log(ZZ), Intercepts)
 plt.show()
-
 
 M = sm.RLM.from_formula(formula='np.log(ADCResponse) ~ 1 + np.log(Mass) + np.log(Intensity) + np.log(Z)', data=he).fit()
 M.params
 
-plt.scatter(np.log(le.ADCResponse), 7.057521 - np.log(le.Mass)/2 + np.log(le.Intensity) + np.log(le.Z) - np.log(le.ADCResponse), s=.1)
+plt.scatter(np.log(he.ADCResponse), 7.057521 - np.log(he.Mass)/2 + np.log(he.Intensity) + np.log(he.Z) - np.log(he.ADCResponse), s=.1)
 plt.show()
+
+plt.scatteA = plt.hist(7.057521 - .158264 - np.log(le.Mass)/2 + np.log(le.Intensity) + np.log(le.Z) - np.log(le.ADCResponse), bins=100)
+plt.show()
+plt.scatter(np.log(he.ADCResponse), 7.057521 - np.log(he.Mass)/2 + np.log(he.Intensity) + np.log(he.Z) - np.log(he.ADCResponse), s=.1)
+plt.show()
+
+plt.scatter(np.log(le.ADCResponse), 7.057521 - .158264 - np.log(le.Mass)/2 + np.log(le.Intensity) + np.log(le.Z) - np.log(le.ADCResponse), s=.1)
+plt.show()
+
+plt.scatter(np.log(le.RT), 7.057521 - .158264 - np.log(le.Mass)/2 + np.log(le.Intensity) + np.log(le.Z) - np.log(le.ADCResponse), s=.1)
+plt.show()
+
+plt.scatter(np.log(le.FWHM), 7.057521 - .158264 - np.log(le.Mass)/2 + np.log(le.Intensity) + np.log(le.Z) - np.log(le.ADCResponse), s=.1)
+plt.show()
+
+plt.scatter(le.RT, 7.057521 - .158264 - np.log(le.Mass)/2 + np.log(le.Intensity) + np.log(le.Z) - np.log(le.ADCResponse), s=.1)
+plt.show()
+
+plt.scatter(np.log(le.Intensity), 7.057521 - .158264 - np.log(le.Mass)/2 + np.log(le.Intensity) + np.log(le.Z) - np.log(le.ADCResponse), s=.1)
+plt.show()
+
+
+A = plt.hist(7.057521 - .158264 - np.log(le.Mass)/2 + np.log(le.Intensity) + np.log(le.Z) - np.log(le.ADCResponse), bins=100)
+plt.show()
+A = plt.hist(7.057521 - .158264 - np.log(he.Mass)/2 + np.log(he.Intensity) + np.log(he.Z) - np.log(he.ADCResponse), bins=1000)
+plt.show()
+
+plt.scatter(np.log(he.ADCResponse), 7.057521 - .158264 - np.log(he.Mass)/2 + np.log(he.Intensity) + np.log(he.Z) - np.log(he.ADCResponse), s=.1, alpha=.1)
+plt.show()
+
+plt.hexbin(np.log(he.ADCResponse), 7.057521 - .158264 - np.log(he.Mass)/2 + np.log(he.Intensity) + np.log(he.Z) - np.log(he.ADCResponse), gridsize=50, cmap='inferno')
+plt.show()
+
+
+cnts = A[0]
+sum(cnts[cnts<1500])/sum(cnts)
 
 np.mean(np.abs(np.exp(M.fittedvalues-np.log(he.ADCResponse))))
 

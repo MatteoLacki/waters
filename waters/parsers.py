@@ -229,13 +229,21 @@ class iaDBsXMLparser(XMLparser):
         """
         return pd.DataFrame(p.attrib for p in self.root.findall('PRODUCT'))
 
+    def iter_peptides(self):
+        for p in self.root.iter('PEPTIDE'):
+            res = p.attrib.copy()
+            mods = " ".join(f"{m.attrib['NAME']}__{m.attrib['POS']}" for m in p)
+            if mods:
+                res['MOD'] = mods
+            yield res
+
     def peptides(self):
         """Get all products information from the XML file.
 
         Returns:
             pd.DataFrame: Products information.
         """
-        return pd.DataFrame(p.attrib for p in self.root.findall('PEPTIDE'))
+        return pd.DataFrame(self.iter_peptides())
 
     def parameters(self):
         """Get iaDBs parameters.
@@ -245,13 +253,23 @@ class iaDBsXMLparser(XMLparser):
         """
         return dict(p.attrib.values() for p in self.root.findall('PARAMS/PARAM'))
 
+    def iter_query_masses(self):
+        for p in self.root.iter('QUERY_MASS'):
+            res = p.attrib.copy()
+            i = 0
+            for i, matched_mass in enumerate(p):
+                res.update(matched_mass.attrib)
+            if i > 0:
+                raise NotImplementedError("The case of multiple MASS_MATCH per query is not coded in.")
+            yield res
+
     def query_masses(self):
         """Get all query mass information from the XML file.
 
         Returns:
             pd.DataFrame: Products information.
         """
-        return pd.DataFrame(p.attrib for p in self.root.findall('QUERY_MASS'))
+        return pd.DataFrame(self.iter_query_masses())
 
     def count_proteins_per_hit(self):
         """Count how many times a given number of proteins were assigned to one hit.
@@ -260,6 +278,34 @@ class iaDBsXMLparser(XMLparser):
             Counter: Distribution of proteins number per hit.
         """
         return Counter(len(h) for h in self.root.iter('HIT'))
+
+    def iter_hits(self):
+        """Get all information on the hits.
+
+        Each hit can consist of multiple proteins.
+        Each protein can have several sequence matches.
+        Each row of the result corresponds to such match.
+        """
+        for hit_id, hit in enumerate(self.root.iter('HIT')):
+            for prot in hit:
+                prot_attrib = {f'PROT_{k}':v for k,v in prot.attrib.items()}
+                seq_matches = []
+                for node in prot:
+                    if node.tag == 'SEQUENCE_MATCH':
+                        seq_match = node.attrib
+                        seq_match['fragment_ion'] = ";".join(fii.attrib['IDS'] for fii in node.iter('FRAGMENT_ION')).replace(',','')
+                        seq_matches.append(seq_match)
+                    else:
+                        prot_attrib[f'PROT_{node.tag}'] = node.text
+                prot_attrib['HIT'] = hit_id
+                for seq_att in seq_matches:
+                    row = {f"SEQ_{k}":v for k,v in seq_att.items()}
+                    row.update(prot_attrib)
+                    yield row
+
+    def hits(self):
+        return pd.DataFrame(self.iter_hits())
+
 
     def info(self):
         """Return core information about the seach outcomes."""

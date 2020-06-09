@@ -15,6 +15,7 @@ files = list(data_f.glob('*IA*.xml'))
 
 I0 = iaDBsXMLparser(files[0])
 I1 = iaDBsXMLparser(files[1])
+I2 = iaDBsXMLparser(files[2])
 
 diff = lambda d0, d1: (d1 != d0).any(1)
 
@@ -28,53 +29,45 @@ sum(diff(PR0.iloc[:,:14], PR1.iloc[:,:14]))
 Counter(PR0.LOSS_TYPE)
 Counter(PR1.LOSS_TYPE) # dass siehst gut aus.
 
+prots = I0.proteins()
+peps  = I0.peptides()
+prods = I0.products()
+I0.query_masses()
+pd.DataFrame(I0.iter_query_masses())
 
-
-I0.proteins()
-I0.peptides()
+Counter(len(qm) for qm in I0.root.iter('QUERY_MASS'))
+Counter(len(qm) for qm in I0.root.iter('PEPTIDE'))
 QM0 = I0.query_masses()
 QM1 = I1.query_masses()
 sum(diff(QM0, QM1))
 
-
-
-hit = I0.root.iter('HIT')
-a = next(hit)
-a.attrib
-for b in a:
-    print(b)
-    print(b.attrib)
-    print()
-
 I0.count_proteins_per_hit()
 I1.count_proteins_per_hit()
 
+h0 = I0.hits()
+h1 = I1.hits()
+h2 = I2.hits()
 
-def iterrator(I0):
-    for hit_id, hit in enumerate(I0.root.iter('HIT')):
-        for prot in hit:
-            prot_attrib = {f'PROT_{k}':v for k,v in prot.attrib.items()}
-            seq_matches = []
-            for node in prot:
-                if node.tag == 'SEQUENCE_MATCH':
-                    seq_match = node.attrib
-                    seq_match['fragment_ion'] = ";".join(fii.attrib['IDS'] for fii in node.iter('FRAGMENT_ION')).replace(',','')
-                    seq_matches.append(seq_match)
-                else:
-                    prot_attrib[f'PROT_{node.tag}'] = node.text
-            prot_attrib['HIT'] = hit_id
-            for seq_att in seq_matches:
-                row = {f"SEQ_{k}":v for k,v in seq_att.items()}
-                row.update(prot_attrib)
-                yield row
+def diff_iter(h0, h1):
+    for c in h0.columns:
+        h0c = h0[c]
+        h1c = h1[c]
+        diff = h0c != h1c
+        if any(diff):
+            yield c, pd.concat([h0c[diff], h1c[diff]], axis=1)
 
-D0 = pd.DataFrame(iterrator(I0)) 
-D1 = pd.DataFrame(iterrator(I1))
-# Need to compare those!
-# pd.concat([D0,D1]).drop_duplicates(keep=False)
 
-d0 = D0[(D0 != D1).any(1)]
-d1 = D1[(D0 != D1).any(1)]
+dict(diff_iter(h0,h1))
+H0 = h0.sort_values(by=['SEQ_START', 'SEQ_END', 'SEQ_COVERAGE']).reset_index()
+H1 = h1.sort_values(by=['SEQ_START', 'SEQ_END', 'SEQ_COVERAGE']).reset_index()
+H2 = h2.sort_values(by=['SEQ_START', 'SEQ_END', 'SEQ_COVERAGE']).reset_index()
 
-d0.iloc[:,1]
-d1.iloc[:,1]
+diff = dict(diff_iter(H0, H2))
+diff = dict(diff_iter(H0, H1))
+IDX = diff['index']
+IDX.columns = 'A','B'
+IDX = IDX.sort_values(['A','B'])
+list(IDX.iterrows())
+
+
+diff['SEQ_fragment_ion']

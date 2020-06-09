@@ -32,6 +32,7 @@ Counter(PR1.LOSS_TYPE) # dass siehst gut aus.
 prots = I0.proteins()
 peps  = I0.peptides()
 prods = I0.products()
+
 I0.query_masses()
 pd.DataFrame(I0.iter_query_masses())
 
@@ -52,6 +53,8 @@ def diff_iter(h0, h1):
     for c in h0.columns:
         h0c = h0[c]
         h1c = h1[c]
+        h0c.fillna('', inplace=True)
+        h1c.fillna('', inplace=True)
         diff = h0c != h1c
         if any(diff):
             yield c, pd.concat([h0c[diff], h1c[diff]], axis=1)
@@ -59,15 +62,47 @@ def diff_iter(h0, h1):
 
 dict(diff_iter(h0,h1))
 H0 = h0.sort_values(by=['SEQ_START', 'SEQ_END', 'SEQ_COVERAGE']).reset_index()
+H0 = h0.sort_values(by=list(h0.columns)).reset_index()
 H1 = h1.sort_values(by=['SEQ_START', 'SEQ_END', 'SEQ_COVERAGE']).reset_index()
+H1 = h1.sort_values(by=list(h1.columns)).reset_index()
 H2 = h2.sort_values(by=['SEQ_START', 'SEQ_END', 'SEQ_COVERAGE']).reset_index()
+H2 = h2.sort_values(by=list(h2.columns)).reset_index()
 
+files
 diff = dict(diff_iter(H0, H2))
 diff = dict(diff_iter(H0, H1))
+diff = dict(diff_iter(H1, H2))
 IDX = diff['index']
 IDX.columns = 'A','B'
 IDX = IDX.sort_values(['A','B'])
 list(IDX.iterrows())
 
-
 diff['SEQ_fragment_ion']
+
+
+prod0 = I0.products()
+prod1 = I1.products()
+prod2 = I2.products()
+dict(diff_iter(prod0, prod1))
+
+prod0 = I0.products()
+prod1 = I1.products()
+prod2 = I2.products()
+
+def no_id(prod):
+    P = prod.copy()
+    # iloc[:,1:]
+    return P.sort_values(by=list(P.columns[1:])).reset_index()
+
+P0, P1, P2 = [no_id(x) for x in (prod0, prod1, prod2)]
+diffIdx = dict(diff_iter(P0,P1))['index']
+
+def show_cyles(df):
+    df.columns = 'A','B'
+    df = df.sort_values(['A','B'])
+    return list(df.iterrows())
+
+x = show_cyles(diffIdx)
+for p in x:
+    if x[0][1].B == '324':
+        print(x[0][1])

@@ -82,7 +82,7 @@ class XMLparser(object):
                              names=column_names,
                              sep=' ',
                              skipinitialspace=True,
-                             **kwds)
+                             **kwds).dropna()
 
     def write(self, path):
         """Write back the xml file."""
@@ -176,7 +176,7 @@ class Apex3Dparser(XMLparser):
     @property
     def LE_element(self):
         """Get low energy xml-tree element."""
-        return next(self.root.iter('DATA'))
+        return next(self.root.iter('LE'))
 
     @property
     def HE_element(self):
@@ -201,6 +201,10 @@ class Apex3Dparser(XMLparser):
     def LE(self, df):
         raise NotImplementedError
 
+    def to_hdf(self):
+        """Save to hdf5 as packed as possible."""
+        self.LE.to_hdf(path_or_buf=self.data_path.with_suffix('.hd5'), key='LE', complevel=9)
+        self.HE.to_hdf(path_or_buf=self.data_path.with_suffix('.hd5'), key='HE', complevel=9)
 
 
 class iaDBsXMLparser(XMLparser):

@@ -18,9 +18,19 @@ iaDBs  = next(data_f.glob('*/*_IA_workflow.xml'))
 A = Apex3Dparser(apex3d)
 A.LE
 A.HE
+A.to_hdf()
+
+
+A.data_path
+A.LE.to_hdf(apex3d.with_suffix('.hd5'), 'LE', complevel=9)
+
 
 P = Pep3Dparser(pep3d)
 P.LE
 P.HE
 
 IA = iaDBsXMLparser(iaDBs)
+IA.parameters()
+
+IA.count_proteins_per_hit()
+IA.info()

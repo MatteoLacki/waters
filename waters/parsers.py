@@ -20,7 +20,8 @@ col2format = { 'Mass':'{:.4f}',
                'InfDownRT':'{:.4f}',
                'TouchDownRT':'{:.4f}' }
 
-
+# IT might be worthwhile to consider the proper way of parsing xmls.
+# https://blog.etianen.com/blog/2013/04/14/python-xml/
 class XMLparser(object):
     """General xml parsing capabilities."""
     def __init__(self, data_path, col2format=col2format):
@@ -28,6 +29,10 @@ class XMLparser(object):
         self.tree = ET.parse(data_path)
         self.root = self.tree.getroot()
         self.col2format = col2format
+
+    def __del__(self):
+        if hasattr(self, 'root'):
+            self.root.clear()
 
     @lru_cache(maxsize=1)
     def get_tag_counts(self):

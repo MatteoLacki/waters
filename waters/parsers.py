@@ -20,7 +20,8 @@ col2format = { 'Mass':'{:.4f}',
                'InfDownRT':'{:.4f}',
                'TouchDownRT':'{:.4f}' }
 
-
+# IT might be worthwhile to consider the proper way of parsing xmls.
+# https://blog.etianen.com/blog/2013/04/14/python-xml/
 class XMLparser(object):
     """General xml parsing capabilities."""
     def __init__(self, data_path, col2format=col2format):
@@ -28,6 +29,10 @@ class XMLparser(object):
         self.tree = ET.parse(data_path)
         self.root = self.tree.getroot()
         self.col2format = col2format
+
+    def __del__(self):
+        if hasattr(self, 'root'):
+            self.root.clear()
 
     @lru_cache(maxsize=1)
     def get_tag_counts(self):
@@ -82,7 +87,7 @@ class XMLparser(object):
                              names=column_names,
                              sep=' ',
                              skipinitialspace=True,
-                             **kwds)
+                             **kwds).dropna()
 
     def write(self, path):
         """Write back the xml file."""
@@ -176,7 +181,7 @@ class Apex3Dparser(XMLparser):
     @property
     def LE_element(self):
         """Get low energy xml-tree element."""
-        return next(self.root.iter('DATA'))
+        return next(self.root.iter('LE'))
 
     @property
     def HE_element(self):
@@ -201,6 +206,10 @@ class Apex3Dparser(XMLparser):
     def LE(self, df):
         raise NotImplementedError
 
+    def to_hdf(self):
+        """Save to hdf5 as packed as possible."""
+        self.LE.to_hdf(path_or_buf=self.data_path.with_suffix('.hd5'), key='LE', complevel=9)
+        self.HE.to_hdf(path_or_buf=self.data_path.with_suffix('.hd5'), key='HE', complevel=9)
 
 
 class iaDBsXMLparser(XMLparser):

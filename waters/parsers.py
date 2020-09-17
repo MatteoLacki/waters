@@ -324,4 +324,7 @@ class iaDBsXMLparser(XMLparser):
 
 
 def get_search_stats(iadbs_out):
-    return iaDBsXMLparser(iadbs_out).info()    
+    X = iaDBsXMLparser(iadbs_out)
+    info = X.info()
+    del X
+    return info    

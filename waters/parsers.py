@@ -1,4 +1,4 @@
-from collections import Counter
+import collections
 from io import StringIO
 from functools import lru_cache
 import numpy as np
@@ -26,52 +26,34 @@ class XMLparser(object):
     """General xml parsing capabilities."""
     def __init__(self, data_path, col2format=col2format):
         self.data_path = data_path
-        self.tree = ET.parse(data_path)
-        self.root = self.tree.getroot()
         self.col2format = col2format
 
     def __del__(self):
         if hasattr(self, 'root'):
             self.root.clear()
 
+    def __iter__(self, names=None):
+        events = ET.iterparse(self.data_path, events=("start", "end",))
+        _, root = next(events)  # Grab the root element.
+        if names is None:
+            for event, elem in events:
+                if event == "end":
+                    yield elem
+                    root.clear()
+
     @lru_cache(maxsize=1)
     def get_tag_counts(self):
         """Count the top level tags.
 
         Returns:
-            Counter: count of each first-level tag.
+            collections.Counter: count of each first-level tag.
         """
-        return Counter(c.tag for c in self.root)
+        return collections.Counter(c.tag for c in self)
 
-    @lru_cache(maxsize=1)
-    def get_all_tag_counts(self):
-        """Count all tags.
-
-        Returns:
-            Counter: count of each first-level tag.
-        """
-        return Counter(n.tag for n in self.tree.iter())
-
-    def iter_filter_elements(self, tag, **conditions):
-        """Iterate elements with attirbute set to specific values.
-
-        But only recently have I learned, that there is limited reason to use it, as etree now supports XPath from v. 1.03 up, see http://effbot.org/zone/element-xpath.htm
-
-        Args:
-            tag (str): which tag to look at?
-            **conditions: attribute name and value (str or set),
-        Yields:
-            xml.etree.cElementTree.Element: consecutive elements meeting the criteria.
-        """
-        conditions = {k: set([v]) if isinstance(v,str) else v for k,v in conditions.items()}
-        for el in self.root.findall(tag):
-            OK = True
-            for k,v in conditions.items():
-                if not (k in el.attrib and el.attrib[k] in v):
-                    OK = False
-                    break
-            if OK:
-                yield el
+    def attributes_iter(self, tag):
+        for el in self:
+            if el.tag == tag:
+                yield el.attrib
     
     def element2df(self, xml_element, column_names, sep=' ', skipinitialspace=True, **kwds):
         """Represent the text data as a DataFrame.
@@ -212,40 +194,47 @@ class Apex3Dparser(XMLparser):
         self.HE.to_hdf(path_or_buf=self.data_path.with_suffix('.hd5'), key='HE', complevel=9)
 
 
+
 class iaDBsXMLparser(XMLparser):
     """Parser of iaDBs xml files."""
+
+    @lru_cache(maxsize=1)
     def prot_ids(self):
         """Get the number each protein id occured in the XML file.
 
         Returns:
-            Counter: counts of id's.
+            collections.Counter: counts of id's.
         """
-        return Counter(p.attrib['ID'] for p in self.root.findall('HIT/PROTEIN'))
+        return collections.Counter(a["ID"] for a in self.attributes_iter('PROTEIN'))
 
+    @lru_cache(maxsize=1)
     def proteins(self):
         """Get all protein information from the XML file.
     
         Returns:
             pd.DataFrame: Protein information.
         """
-        return pd.DataFrame(p.attrib for p in self.root.findall('HIT/PROTEIN'))
+        return pd.DataFrame(self.attributes_iter('PROTEIN'))
 
+    @lru_cache(maxsize=1)
     def products(self):
         """Get all products information from the XML file.
 
         Returns:
             pd.DataFrame: Products information.
         """
-        return pd.DataFrame(p.attrib for p in self.root.findall('PRODUCT'))
+        return pd.DataFrame(self.attributes_iter('PRODUCT'))
 
     def iter_peptides(self):
-        for p in self.root.iter('PEPTIDE'):
-            res = p.attrib.copy()
-            mods = " ".join(f"{m.attrib['NAME']}__{m.attrib['POS']}" for m in p)
-            if mods:
-                res['MOD'] = mods
-            yield res
+        for el in self:
+            if el.tag == "PEPTIDE":
+                res = el.attrib.copy()
+                mods = " ".join(f"{m.attrib['NAME']}__{m.attrib['POS']}" for m in el)
+                if mods:
+                    res['MOD'] = mods
+                yield res
 
+    @lru_cache(maxsize=1)
     def peptides(self):
         """Get all products information from the XML file.
 
@@ -254,24 +243,34 @@ class iaDBsXMLparser(XMLparser):
         """
         return pd.DataFrame(self.iter_peptides())
 
+    @lru_cache(maxsize=1)
     def parameters(self):
         """Get iaDBs parameters.
 
         Returns:
             dict: Parameter-value.
         """
-        return dict(p.attrib.values() for p in self.root.findall('PARAMS/PARAM'))
+        res = {}
+        for el in self:
+            if el.tag == "PARAM":
+                k, v = el.attrib.values()
+                res[k] = v
+                if k == "SampleDescription":
+                    break
+        return res
 
     def iter_query_masses(self):
-        for p in self.root.iter('QUERY_MASS'):
-            res = p.attrib.copy()
-            i = 0
-            for i, matched_mass in enumerate(p):
-                res.update(matched_mass.attrib)
-            if i > 0:
-                raise NotImplementedError("The case of multiple MASS_MATCH per query is not coded in.")
-            yield res
+        for el in self:
+            if el.tag == "QUERY_MASS":
+                r = el.attrib.copy()
+                i = 0
+                for i, matched_mass in enumerate(el):
+                    r.update(matched_mass.attrib)
+                if i > 0:
+                    raise NotImplementedError("The case of multiple MASS_MATCH per query is not coded in.")
+                yield r
 
+    @lru_cache(maxsize=1)
     def query_masses(self):
         """Get all query mass information from the XML file.
 
@@ -280,13 +279,14 @@ class iaDBsXMLparser(XMLparser):
         """
         return pd.DataFrame(self.iter_query_masses())
 
+    @lru_cache(maxsize=1)
     def count_proteins_per_hit(self):
         """Count how many times a given number of proteins were assigned to one hit.
 
         Returns:
-            Counter: Distribution of proteins number per hit.
+            collections.Counter: Distribution of proteins number per hit.
         """
-        return Counter(len(h) for h in self.root.iter('HIT'))
+        return collections.Counter(len(el) for el in self if el.tag == 'HIT')
 
     def iter_hits(self):
         """Get all information on the hits.
@@ -295,26 +295,29 @@ class iaDBsXMLparser(XMLparser):
         Each protein can have several sequence matches.
         Each row of the result corresponds to such match.
         """
-        for hit_id, hit in enumerate(self.root.iter('HIT')):
-            for prot in hit:
-                prot_attrib = {f'PROT_{k}':v for k,v in prot.attrib.items()}
-                seq_matches = []
-                for node in prot:
-                    if node.tag == 'SEQUENCE_MATCH':
-                        seq_match = node.attrib
-                        seq_match['fragment_ion'] = ";".join(fii.attrib['IDS'] for fii in node.iter('FRAGMENT_ION')).replace(',','')
-                        seq_matches.append(seq_match)
-                    else:
-                        prot_attrib[f'PROT_{node.tag}'] = node.text
-                prot_attrib['HIT'] = hit_id
-                for seq_att in seq_matches:
-                    row = {f"SEQ_{k}":v for k,v in seq_att.items()}
-                    row.update(prot_attrib)
-                    yield row
+        hit_id = 0
+        for el in self:
+            if el.tag == "HIT":
+                for prot in el:
+                    prot_attrib = {f'PROT_{k}':v for k,v in prot.attrib.items()}
+                    seq_matches = []
+                    for node in prot:
+                        if node.tag == 'SEQUENCE_MATCH':
+                            seq_match = node.attrib
+                            seq_match['fragment_ion'] = ";".join(fii.attrib['IDS'] for fii in node.iter('FRAGMENT_ION')).replace(',','')
+                            seq_matches.append(seq_match)
+                        else:
+                            prot_attrib[f'PROT_{node.tag}'] = node.text
+                    prot_attrib['HIT'] = hit_id
+                    for seq_att in seq_matches:
+                        row = {f"SEQ_{k}":v for k,v in seq_att.items()}
+                        row.update(prot_attrib)
+                        yield row
+                hit_id += 1
 
+    @lru_cache(maxsize=1)
     def hits(self):
         return pd.DataFrame(self.iter_hits())
-
 
     def info(self):
         """Return core information about the seach outcomes."""

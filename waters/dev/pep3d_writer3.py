@@ -16,10 +16,13 @@ if system() == 'Linux':
 else:
     data_f = Path(r"Y:\TESTRES2\5P\S170317_04__v1")
 
-pep3d  = next(data_f.glob('*_Pep3D_Spectrum.xml'))
+pep3d = next(data_f.glob('*_Pep3D_Spectrum.xml'))
+
 
 P3D = Pep3Dparser(pep3d)
 P3D.get_all_tag_counts()
+
+del P3D
 
 le = P3D.LE
 he = P3D.HE

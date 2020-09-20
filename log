@@ -1,0 +1,4 @@
+0.0.4
+* fixed problems with memory deallocation of xml root.
+* more efficient iteration introduced
+* more efficient h5py integration (not using pandas to_hdf method anymore)

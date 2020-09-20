@@ -4,6 +4,7 @@ from functools import lru_cache
 import numpy as np
 import pandas as pd
 import xml.etree.cElementTree as ET
+import h5py
 
 
 col2format = { 'Mass':'{:.4f}',
@@ -20,8 +21,7 @@ col2format = { 'Mass':'{:.4f}',
                'InfDownRT':'{:.4f}',
                'TouchDownRT':'{:.4f}' }
 
-# IT might be worthwhile to consider the proper way of parsing xmls.
-# https://blog.etianen.com/blog/2013/04/14/python-xml/
+
 class XMLparser(object):
     """General xml parsing capabilities."""
     def __init__(self, data_path, col2format=col2format):
@@ -32,14 +32,21 @@ class XMLparser(object):
         if hasattr(self, 'root'):
             self.root.clear()
 
-    def __iter__(self, names=None):
+    def __iter__(self):
         events = ET.iterparse(self.data_path, events=("start", "end",))
-        _, root = next(events)  # Grab the root element.
-        if names is None:
-            for event, elem in events:
-                if event == "end":
-                    yield elem
-                    root.clear()
+        _, root = next(events)  # Grab the root element.    
+        for event, elem in events:
+            if event == "end":
+                yield elem
+                root.clear()
+
+    def iter(self, tag=None):
+        if tag is None:
+            yield from self
+        else:
+            for el in self:
+                if el.tag == tag:
+                    yield el 
 
     @lru_cache(maxsize=1)
     def get_tag_counts(self):
@@ -76,6 +83,35 @@ class XMLparser(object):
         path = str(path)
         self.tree.write(path)
 
+    @property
+    def LE(self):
+        raise NotImplementedError
+    
+    @property
+    def HE(self):
+        raise NotImplementedError
+
+    def to_hdf(self, path,
+               opts={'compression':'gzip',
+                     'compression_opts':9,
+                     'shuffle':True}):
+        """Save to hdf5 as packed as possible."""
+        with h5py.File(path, "a") as f:
+            LE = self.LE
+            f.create_dataset('LE', data=LE.values, **opts)
+            f['LE'].attrs['columns'] = list(LE.columns)
+            del LE
+            HE = self.HE
+            f.create_dataset('HE', data=HE.values, **opts)
+            f['HE'].attrs['columns'] = list(HE.columns)
+            del HE
+
+    @staticmethod 
+    def hdf2pd(path, ms_level=1):
+        assert ms_level in (1,2), f"Pass in 'ms_level' either 1 or 2."
+        with h5py.File(path, "r") as f:
+            x = 'LE' if ms_level == 1 else 'HE'
+            return pd.DataFrame(f[x][()], columns=f[x].attrs['columns'])
 
 
 def df2text(df, col2format=col2format, copy=True):
@@ -91,15 +127,12 @@ def df2text(df, col2format=col2format, copy=True):
     df = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
     return "\n      "+"\n      ".join(df)
 
+# def df2text2(df):
+#     return "\n      "+"\n      ".join(" ".join(row.astype(str)) for row in df.values)
 
-
-def df2text2(df):
-    return "\n      "+"\n      ".join(" ".join(row.astype(str)) for row in df.values)
-
-
-def df2text3(df):
-    x = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
-    return "\n      "+"\n      ".join(x)
+# def df2text3(df):
+#     x = df.iloc[:,0].astype(str).str.cat(df.iloc[:,1:].astype(str), sep=" ")
+#     return "\n      "+"\n      ".join(x)
 
 
 
@@ -107,12 +140,12 @@ class Pep3Dparser(XMLparser):
     @property
     def LE_columns(self):
         """Get low energy column names."""
-        return [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='0']/*")]
+        return [el.attrib['NAME'] for el in next(self.iter('FORMAT'))]
 
     @property
     def LE_element(self):
         """Get low energy xml-tree element."""
-        return next(self.root.iter('DATA'))
+        return next(self.iter('DATA'))
 
     @property
     def LE(self):
@@ -126,12 +159,14 @@ class Pep3Dparser(XMLparser):
     @property
     def HE_columns(self):
         """Get high energy column names."""
-        return [f.attrib['NAME'] for f in self.root.findall("FORMAT[@FRAGMENTATION_LEVEL='1']/*")]
+        it = self.iter('FORMAT')
+        _ = next(it)
+        return [f.attrib['NAME'] for f in next(it)]
 
     @property
     def HE_element(self):
         """Get high energy xml-tree element."""
-        return next(self.root.iter('HE_DATA'))
+        return next(self.iter('HE_DATA'))
 
     @property
     def HE(self):
@@ -148,7 +183,7 @@ class Apex3Dparser(XMLparser):
     @property
     def columns(self):
         """Get column names."""
-        return [f.attrib['NAME'] for f in self.root.findall('DATAFORMAT/FIELD')]
+        return [f.attrib['NAME'] for f in next(self.iter('DATAFORMAT'))]
 
     @property
     def LE_columns(self):
@@ -163,12 +198,12 @@ class Apex3Dparser(XMLparser):
     @property
     def LE_element(self):
         """Get low energy xml-tree element."""
-        return next(self.root.iter('LE'))
+        return next(self.iter('LE'))
 
     @property
     def HE_element(self):
         """Get low energy xml-tree element."""
-        return next(self.root.iter('HE'))
+        return next(self.iter('HE'))
 
     @property
     def LE(self):
@@ -188,10 +223,7 @@ class Apex3Dparser(XMLparser):
     def LE(self, df):
         raise NotImplementedError
 
-    def to_hdf(self):
-        """Save to hdf5 as packed as possible."""
-        self.LE.to_hdf(path_or_buf=self.data_path.with_suffix('.hd5'), key='LE', complevel=9)
-        self.HE.to_hdf(path_or_buf=self.data_path.with_suffix('.hd5'), key='HE', complevel=9)
+
 
 
 

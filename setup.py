@@ -4,7 +4,7 @@ import platform
 
 settings = dict(name='waters',
                 packages=find_packages(),
-                version='0.0.3',
+                version='0.0.4',
                 description='Parsing MS data from Waters.',
                 long_description='Parsing MS data from Waters.',
                 author='Mateusz Krzysztof Łącki',
@@ -18,7 +18,9 @@ settings = dict(name='waters',
                     'Intended Audience :: Science/Research',
                     'Topic :: Scientific/Engineering :: Chemistry',
                     'Programming Language :: Python :: 3.7'],
-                install_requires=['pandas', 'fs_ops'])
+                install_requires=['pandas',
+                                  'fs_ops',
+                                  'h5py'])
 
 if platform.system() == 'Windows':
     settings['scripts'] = ["bin/iadbs2stats.py", "bin/iadbs2csv.py", "bin/create_waters_shortcuts.py"]
